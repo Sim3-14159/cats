@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cat Slideshow with Categories</title>
+  <style>
+  body {
+    margin: 0;
+    padding: 40px 20px;
+    background-color: #222;
+    color: #fff;
+    font-family: sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    box-sizing: border-box;
+  }
+
+  h1 {
+    margin-bottom: 10px;
+    font-size: 2em;
+  }
+
+  label {
+    margin: 20px 0 5px;
+    font-size: 1.1em;
+  }
+
+  select {
+    padding: 10px 15px;
+    font-size: 16px;
+    width: 250px;
+    margin-bottom: 30px;
+    border-radius: 5px;
+    border: none;
+    outline: none;
+  }
+
+  .slideshow {
+    width: 600px;
+    height: 400px;
+    overflow: hidden;
+    position: relative;
+    border: 5px solid #fff;
+    border-radius: 10px;
+    box-shadow: 0 0 20px #000;
+    background: #111;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .slideshow img {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    opacity: 0;
+    transition: opacity 1s ease-in-out;
+    object-fit: cover;
+  }
+
+  .slideshow img.active {
+    opacity: 1;
+  }
+
+  footer {
+    margin-top: 30px;
+    font-size: 0.9em;
+    color: #aaa;
+  }
+
+  p {
+    margin: 0;
+    font-size: 1em;
+  }
+</style>
+</head>
+<body>
+
+  <h1>🐾 Cat Slideshow</h1>
+  <label for="categorySelect">Choose a category:</label>
+  <select id="categorySelect">
+    <option value="">-- Random Cats --</option>
+  </select>
+
+  <div class="slideshow" id="slideshow">
+    <p>Loading cats...</p>
+  </div>
+
+  <footer>Powered by The Cat API</footer>
+
+  <script>
+    const slideshow = document.getElementById('slideshow');
+    const categorySelect = document.getElementById('categorySelect');
+    const NUM_IMAGES = 5;
+    let intervalId;
+
+    // Load available categories
+    async function loadCategories() {
+      try {
+        const res = await fetch('https://api.thecatapi.com/v1/categories');
+        const categories = await res.json();
+
+        categories.forEach(cat => {
+          const option = document.createElement('option');
+          option.value = cat.id;
+          option.textContent = cat.name.charAt(0).toUpperCase() + cat.name.slice(1);
+          categorySelect.appendChild(option);
+        });
+      } catch (error) {
+        console.error("Failed to load categories:", error);
+      }
+    }
+
+    // Load cat images based on selected category
+    async function loadCatImages(categoryId = '') {
+      clearInterval(intervalId);
+      slideshow.innerHTML = "<p>Loading cats...</p>";
+
+      try {
+        let url = `https://api.thecatapi.com/v1/images/search?limit=${NUM_IMAGES}`;
+        if (categoryId) {
+          url += `&category_ids=${categoryId}`;
+        }
+
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data.length === 0) {
+          slideshow.innerHTML = "<p>😿 No cats found in this category.</p>";
+          return;
+        }
+
+        slideshow.innerHTML = ''; // Clear previous images
+
+        data.forEach((cat, index) => {
+          const img = document.createElement('img');
+          img.src = cat.url;
+          if (index === 0) img.classList.add('active');
+          slideshow.appendChild(img);
+        });
+
+        startSlideshow();
+      } catch (error) {
+        console.error("Failed to load cat images:", error);
+        slideshow.innerHTML = "<p>😿 Couldn't load cat images.</p>";
+      }
+    }
+
+    function startSlideshow() {
+      let current = 0;
+      const images = document.querySelectorAll('.slideshow img');
+
+      intervalId = setInterval(() => {
+        images[current].classList.remove('active');
+        current = (current + 1) % images.length;
+        images[current].classList.add('active');
+      }, 3000);
+    }
+
+    // Event listener for dropdown change
+    categorySelect.addEventListener('change', (e) => {
+      const selectedCategory = e.target.value;
+      loadCatImages(selectedCategory);
+    });
+
+    // Initial load
+    loadCategories();
+    loadCatImages();
+  </script>
+
+</body>
+</html>
